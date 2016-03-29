@@ -145,7 +145,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # IP configuration
     master_ip = vagrant_openshift_config['master_ip']
     minion_ip_base = vagrant_openshift_config['minion_ip_base']
-    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
+    minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+30}" }
     minion_ips_str = minion_ips.join(",")
 
     fixup_net_udev = ''
@@ -252,8 +252,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
       if ! single_vm_cluster
-        # Work around https://github.com/pradels/vagrant-libvirt/issues/419
-        override.vm.synced_folder sync_from, sync_to, type: 'nfs'
+          #unless vagrant_openshift_config['no_synced_folders']
+            # Work around https://github.com/pradels/vagrant-libvirt/issues/419
+            override.vm.synced_folder sync_from, sync_to, type: 'nfs'
+          #end
       end
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i
