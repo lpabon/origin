@@ -64,7 +64,7 @@ final() {
     setup_kube
     setup_admin
     setup_project
-    setup_route
+    setup_router
 }
 
 final
