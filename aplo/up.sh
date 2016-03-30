@@ -1,4 +1,4 @@
 #!/bin/sh
 
 . aplo/env.source
-vagrant up
+vagrant up master && vagrant up
