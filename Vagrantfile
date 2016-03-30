@@ -134,9 +134,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # Tag configuration as stale when provisioning a dev cluster to
     # ensure that nodes can wait for fresh configuration to be generated.
-    #if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
-    #  system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
-    #end
+    config.vm.provider "virtualbox" do |v|
+        if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+          system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
+        end
+    end
 
     instance_prefix = "openshift"
 
@@ -187,6 +189,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
 
         # DISKS
+        # Seems that the minions have the OS on /dev/sda, therefore the first disk will actually be /dev/vda...
         driverletters = ('b'..'z').to_a
         minion.vm.provider :libvirt do  |lv|
             (0..vagrant_openshift_config['num_disks'].to_i-1).each do |d|
