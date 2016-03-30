@@ -65,7 +65,7 @@ in `./aplo/env.source`.  For example, to create three minions each with eight
 ```
 # source ./aplo/env.source
 # export OPENSHIFT_NUM_MINIONS=3
-# export export OPENSHIFT_NUM_GLUSTERFS_DISKS=8
+# export OPENSHIFT_NUM_GLUSTERFS_DISKS=8
 # vagrant up master && vagrant up
 ```
 
