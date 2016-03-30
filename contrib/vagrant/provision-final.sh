@@ -41,11 +41,6 @@ setup_router() {
     sleep 1
     echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
 
-    # Wait until it is running
-    local msg="waiting for router"
-    local condition="oc get pods | grep router | grep Running"
-    os::provision::wait-for-condition "${msg}" "${condition}"
-
     oadm policy add-scc-to-user hostnetwork -z router
     oadm policy add-cluster-role-to-user system:router system:serviceaccount:default:router
     chmod +r openshift.local.config/master/openshift-router.kubeconfig
