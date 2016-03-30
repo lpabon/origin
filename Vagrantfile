@@ -45,6 +45,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # these are the default settings, overrides are in .vagrant-openshift.json
   vagrant_openshift_config = {
+    "num_disks"         => ENV['OPENSHIFT_NUM_GLUSTERFS_DISKS'] || 3,
     "instance_name"     => "origin-dev",
     "os"                => "fedora",
     "dev_cluster"       => false,
@@ -184,6 +185,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion.vm.hostname = "openshift-minion-#{minion_index}"
         config.vm.synced_folder ".", "/vagrant", disabled: true
         config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
+
+        # DISKS
+        driverletters = ('b'..'z').to_a
+        minion.vm.provider :libvirt do  |lv|
+            (0..vagrant_openshift_config['num_disks'].to_i-1).each do |d|
+                lv.storage :file, :device => "vd#{driverletters[d]}", :path => "oc_gluster_disk-#{n}-#{d}.disk", :size => '2048G'
+            end
+        end
       end
     end
   else # Single VM dev environment
