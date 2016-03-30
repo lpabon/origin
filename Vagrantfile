@@ -134,10 +134,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # Tag configuration as stale when provisioning a dev cluster to
     # ensure that nodes can wait for fresh configuration to be generated.
-    config.vm.provider "virtualbox" do |v|
-        if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
-          system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
-        end
+    if ARGV[0] =~ /^up|provision$/i and not ARGV.include?("--no-provision")
+        system('test -d ./openshift.local.config && touch ./openshift.local.config/.stale')
     end
 
     instance_prefix = "openshift"

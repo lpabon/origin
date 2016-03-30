@@ -127,9 +127,6 @@ os::provision::init-certs() {
 
   popd > /dev/null
 
-  # Indicate to nodes that it's safe to begin provisioning by removing
-  # the stale marker.
-  rm -f ${config_root}/openshift.local.config/.stale
 }
 
 os::provision::set-os-env() {

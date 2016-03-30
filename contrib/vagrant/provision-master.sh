@@ -45,3 +45,8 @@ if [ "${SDN_NODE}" = "true" ]; then
     os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
   fi
 fi
+
+  # Indicate to nodes that it's safe to begin provisioning by removing
+  # the stale marker.
+  echo "Minions set to continue"
+  rm -f ${CONFIG_ROOT}/openshift.local.config/.stale
