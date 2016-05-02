@@ -14,8 +14,10 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -148,6 +150,17 @@ func (c *CLI) SetupProject(name string, kubeClient *kclient.Client, _ map[string
 		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
 		return nil, err
 	}
+	if err := wait.ExponentialBackoff(kclient.DefaultBackoff, func() (bool, error) {
+		if _, err := c.KubeREST().Pods(c.Namespace()).List(kapi.ListOptions{}); err != nil {
+			if apierrs.IsForbidden(err) {
+				e2e.Logf("Waiting for user to have access to the namespace")
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
 	return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()}}, err
 }
 
@@ -214,21 +227,20 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 // Run executes given OpenShift CLI command verb (iow. "oc <verb>").
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
-func (c *CLI) Run(verb string) *CLI {
+func (c *CLI) Run(commands ...string) *CLI {
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		execPath:        c.execPath,
-		verb:            verb,
+		verb:            commands[0],
 		kubeFramework:   c.KubeFramework(),
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
 		outputDir:       c.outputDir,
-		globalArgs: []string{
-			verb,
+		globalArgs: append(commands, []string{
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.configPath),
-		},
+		}...),
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)

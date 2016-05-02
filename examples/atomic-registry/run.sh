@@ -52,7 +52,7 @@ echo "Starting registry services..."
 
 set -x
 
-$CMD oadm registry --credentials /etc/origin/master/openshift-registry.kubeconfig --latest-images=true
+$CMD oadm registry --latest-images=true
 # we're hacking the service to use a node port to reduce deployment complexity
 $CMD oc patch service docker-registry -p \
      '{ "spec": { "type": "NodePort", "selector": {"docker-registry": "default"}, "ports": [ {"nodePort": 5000, "port": 5000, "targetPort": 5000}] }}'
@@ -71,7 +71,7 @@ $CMD oc new-app --template registry-console-template \
      -p OPENSHIFT_OAUTH_PROVIDER_URL=https://${INSTALL_HOST}:8443,COCKPIT_KUBE_URL=https://${INSTALL_HOST},REGISTRY_HOST=${INSTALL_HOST}:5000
 # we're hacking the service to use a node port to reduce deployment complexity
 $CMD oc patch service registry-console -p \
-     '{ "spec": { "type": "NodePort", "selector": {"name": "registry-console"}, "ports": [ {"nodePort": 443, "port": 9000, "targetPort": 9090}] }}'
+     '{ "spec": { "type": "NodePort", "selector": {"name": "registry-console"}, "ports": [ {"name": "https", "nodePort": 443, "port": 9000, "targetPort": 9090}, {"name": "http", "nodePort": 80, "port": 9000, "targetPort": 9090} ] }}'
 
 set +x
 echo "Updating default project configuration"

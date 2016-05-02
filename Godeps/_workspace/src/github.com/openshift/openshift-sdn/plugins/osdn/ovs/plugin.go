@@ -3,7 +3,9 @@ package ovs
 import (
 	"fmt"
 	"net"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -14,13 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
 type ovsPlugin struct {
-	osdn.OvsController
+	osdn.OsdnController
 
-	MTU         uint
 	multitenant bool
 }
 
@@ -35,7 +35,7 @@ func MultiTenantPluginName() string {
 func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
 	plugin := &ovsPlugin{multitenant: multitenant}
 
-	err := plugin.BaseInit(registry, NewFlowController(multitenant), plugin, hostname, selfIP)
+	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -62,8 +62,6 @@ func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnet
 }
 
 func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
-	plugin.MTU = mtu
-
 	networkChanged, err := plugin.SubnetStartNode(mtu)
 	if err != nil {
 		return err
@@ -81,9 +79,10 @@ func (plugin *ovsPlugin) PluginStartNode(mtu uint) error {
 			return err
 		}
 		for _, p := range pods {
-			err = plugin.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(p.ContainerID))
+			containerID := osdn.GetPodContainerID(&p)
+			err = plugin.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
 			if err != nil {
-				glog.Warningf("Could not update pod %q (%s): %s", p.Name, p.ContainerID, err)
+				glog.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}
 		}
 	}
@@ -146,7 +145,7 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 	return rsrc.Value(), nil
 }
 
-func extractBandwidthResources(pod *api.Pod, MTU uint) (ingress, egress int64, err error) {
+func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error) {
 	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
@@ -164,6 +163,35 @@ func extractBandwidthResources(pod *api.Pod, MTU uint) (ingress, egress int64, e
 	return ingress, egress, nil
 }
 
+func wantsMacvlan(pod *kapi.Pod) (bool, error) {
+	val, found := pod.Annotations["pod.network.openshift.io/assign-macvlan"]
+	if !found || val != "true" {
+		return false, nil
+	}
+	for _, container := range pod.Spec.Containers {
+		if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("Pod has 'pod.network.openshift.io/assign-macvlan' annotation but is not privileged")
+}
+
+func isScriptError(err error) bool {
+	_, ok := err.(*exec.ExitError)
+	return ok
+}
+
+// Get the last command (which is prefixed with "+" because of "set -x") and its output
+func getScriptError(output []byte) string {
+	lines := strings.Split(string(output), "\n")
+	for n := len(lines) - 1; n >= 0; n-- {
+		if strings.HasPrefix(lines[n], "+") {
+			return strings.Join(lines[n:], "\n")
+		}
+	}
+	return string(output)
+}
+
 func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
@@ -177,7 +205,7 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 	if pod == nil {
 		return fmt.Errorf("failed to retrieve pod %s/%s", namespace, name)
 	}
-	ingress, egress, err := extractBandwidthResources(pod, plugin.MTU)
+	ingress, egress, err := extractBandwidthResources(pod)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod %s/%s ingress/egress quantity: %v", namespace, name, err)
 	}
@@ -194,16 +222,31 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%d", plugin.MTU)).CombinedOutput()
+	macvlan, err := wantsMacvlan(pod)
+	if err != nil {
+		return err
+	}
+
+	out, err := exec.Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
-	return err
+
+	if isScriptError(err) {
+		return fmt.Errorf("Error running network setup script: %s", getScriptError(out))
+	} else {
+		return err
+	}
 }
 
 func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1", "-1").CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
-	return err
+
+	if isScriptError(err) {
+		return fmt.Errorf("Error running network teardown script: %s", getScriptError(out))
+	} else {
+		return err
+	}
 }
 
 func (plugin *ovsPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
@@ -216,9 +259,14 @@ func (plugin *ovsPlugin) UpdatePod(namespace string, name string, id kubeletType
 		return err
 	}
 
-	out, err := utilexec.New().Command(plugin.getExecutable(), updateCmd, string(id), vnidstr).CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), updateCmd, string(id), vnidstr).CombinedOutput()
 	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
-	return err
+
+	if isScriptError(err) {
+		return fmt.Errorf("Error running network update script: %s", getScriptError(out))
+	} else {
+		return err
+	}
 }
 
 func (plugin *ovsPlugin) Event(name string, details map[string]interface{}) {
