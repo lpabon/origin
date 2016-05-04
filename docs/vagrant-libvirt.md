@@ -15,8 +15,8 @@ Before creating the cluster, the host must have the following:
 
 ## Memory requirement
 Note that each virtual machine defaults to using 3G of RAM.  The default setup
-is for one master and one minion, therefore using default the setup will consume
-6G of RAM.
+is for one master and three minions, therefore using default the setup will consume
+12G of RAM.
 
 On a system with 32G of RAM, I have setup a cluster with one master and 8
 minions.
