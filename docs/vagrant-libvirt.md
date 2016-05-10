@@ -48,6 +48,14 @@ $ ./contrib/vagrant/privision-final.sh
 
 This will setup a project called `test` and an administrator called `test-admin`.
 
+Now you will need to go to each of the _minions_ and turn off the firewall by doing the following:
+
+```
+# vagrant ssh minion-1
+$ sudo service iptables stop
+$ sudo systemctl disable iptables
+```
+
 # Deleting the cluster
 To completely wipe the cluster execute the following:
 
