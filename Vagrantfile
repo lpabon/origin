@@ -171,6 +171,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.hostname = "openshift-master"
       config.vm.synced_folder ".", "/vagrant", disabled: true
       config.vm.synced_folder sync_from, sync_to, type: vagrant_openshift_config['sync_folders_type']
+
+      # Forward ports
+      config.vm.network "forwarded_port", guest: 22, host: 9022
+      config.vm.network "forwarded_port", guest: 8443, host: 9443
+
     end
 
     # OpenShift minion

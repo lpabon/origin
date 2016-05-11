@@ -230,6 +230,19 @@ os::provision::base-provision() {
       # is brittle but the tests should catch conflicts with the
       # package rules.
       iptables -I INPUT 4 -p tcp -m state --state NEW --dport 10250 -j ACCEPT
+
+      # Allow GlusterFS communication
+      iptables -N RH-Firewall-1-INPUT
+      iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 24007:24047 -j ACCEPT
+      iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 111 -j ACCEPT
+      iptables -A RH-Firewall-1-INPUT -m state --state NEW -m udp -p udp --dport 111 -j ACCEPT 
+      iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 38465:38467 -j ACCEPT
+
+      # Allow all!
+      iptables -I INPUT -j ACCEPT
+
+      # Save settings
+      service iptables save
     fi
   fi
 }
@@ -262,7 +275,8 @@ os::provision::install-pkgs() {
     yum install -y deltarpm
     yum update -y
     yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils \
-      which ethtool bash-completion iptables-services
+      which ethtool bash-completion iptables-services \
+      glusterfs-client
 
     systemctl enable docker
     systemctl start docker
