@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gluster-4
+  labels:
+    name: gluster-4
+spec:
+  hostNetwork: true
+  nodeSelector:
+    name: gluster-4
+  containers:
+    - name: glusterfs
+      image: lpabon/gluster
+      ports:
+        - name: ssh
+          containerPort: 22
+      securityContext: 
+        capabilities: {}
+        privileged: true
+      volumeMounts:
+        - name: lvm
+          mountPath: /run/lvm
+        - name: dev
+          mountPath: /dev
+        - name: cgroups
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+  volumes:
+    - name: lvm
+      hostPath:
+        path: "/run/lvm"
+    - name: dev
+      hostPath:
+        path: "/dev"
+    - name: cgroups
+      hostPath:
+        path: "/sys/fs/cgroup"

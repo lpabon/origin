@@ -1,0 +1,176 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "heketi",
+    "annotations": {
+      "description": "Heketi application",
+      "tags": "glusterfs,heketi"
+    }
+  },
+  "labels": {
+    "template": "heketi"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Exposes Heketi service"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "rest-api",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Defines how to deploy Heketi"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "name": "${NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${NAME}",
+            "labels": {
+              "name": "${NAME}"
+            }
+          },
+          "triggers": [
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "strategy": {
+            "type": "Rolling"
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "heketi",
+                "image": "heketi/heketi:dev",
+                "env": [
+                  {
+                    "name": "HEKETI_EXECUTOR",
+                    "value": "kubernetes"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_CERTFILE",
+                    "value": "${HEKETI_KUBE_CERTFILE}"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_INSECURE",
+                    "value": "${HEKETI_KUBE_INSECURE}"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_USER",
+                    "value": "${HEKETI_KUBE_USER}"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_PASSWORD",
+                    "value": "${HEKETI_KUBE_PASSWORD}"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_NAMESPACE",
+                    "value": "${HEKETI_KUBE_NAMESPACE}"
+                  },
+                  {
+                    "name": "HEKETI_KUBE_APIHOST",
+                    "value": "${HEKETI_KUBE_APIHOST}"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "db",
+                    "mountPath": "/var/lib/heketi"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/hello",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/hello",
+                    "port": 8080
+                  }
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "db"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "heketi"
+    },
+    {
+      "name": "HEKETI_KUBE_CERTFILE",
+      "description": "SSL certificate file accessiable from the container"
+    },
+    {
+      "name": "HEKETI_KUBE_INSECURE",
+      "description": "Allow insecure SSL/HTTPS access",
+      "value": "n"
+    },
+    {
+      "name": "HEKETI_KUBE_USER",
+      "description": "OpenShift username to access Kubernetes API"
+    },
+    {
+      "name": "HEKETI_KUBE_PASSWORD",
+      "description": "Password for OpenShift user"
+    },
+    {
+      "name": "HEKETI_KUBE_NAMESPACE",
+      "description": "OpenShift project or Kubernetes namespace containing GlusterFS",
+      "required": true
+    },
+    {
+      "name": "HEKETI_KUBE_APIHOST",
+      "description": "Kubernetes API host",
+      "required": true
+    }
+  ]
+}

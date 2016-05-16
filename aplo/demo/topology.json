@@ -1,0 +1,80 @@
+{
+    "clusters": [
+        {
+            "nodes": [
+                {
+                    "node": {
+                        "hostnames": {
+                            "manage": [
+                                "gluster-1"
+                            ],
+                            "storage": [
+                                "192.168.10.30"
+                            ]
+                        },
+                        "zone": 1
+                    },
+                    "devices": [
+                        "/dev/vda",
+                        "/dev/vdb",
+                        "/dev/vdc",
+                        "/dev/vdd",
+                        "/dev/vde",
+                        "/dev/vdf",
+                        "/dev/vdg",
+                        "/dev/vdh",
+                        "/dev/vdi"
+                    ]
+                },
+                {
+                    "node": {
+                        "hostnames": {
+                            "manage": [
+                                "gluster-2"
+                            ],
+                            "storage": [
+                                "192.168.10.31"
+                            ]
+                        },
+                        "zone": 2
+                    },
+                    "devices": [
+                        "/dev/vda",
+                        "/dev/vdb",
+                        "/dev/vdc",
+                        "/dev/vdd",
+                        "/dev/vde",
+                        "/dev/vdf",
+                        "/dev/vdg",
+                        "/dev/vdh",
+                        "/dev/vdi"
+                    ]
+                },
+                {
+                    "node": {
+                        "hostnames": {
+                            "manage": [
+                                "gluster-3"
+                            ],
+                            "storage": [
+                                "192.168.10.32"
+                            ]
+                        },
+                        "zone": 1
+                    },
+                    "devices": [
+                        "/dev/vda",
+                        "/dev/vdb",
+                        "/dev/vdc",
+                        "/dev/vdd",
+                        "/dev/vde",
+                        "/dev/vdf",
+                        "/dev/vdg",
+                        "/dev/vdh",
+                        "/dev/vdi"
+                    ]
+                }
+            ]
+        }
+    ]
+}
