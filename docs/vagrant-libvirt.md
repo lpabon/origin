@@ -50,20 +50,6 @@ This will setup a project called `test` and an administrator called `test-admin`
 
 ## GlusterFS Setup
 
-To setup the systems to be used for GlusterFS containers you will need to go to each of the _minions_ and adjust the firewall as shown:
-
-```
-# vagrant ssh minion-1
-$ sudo /bin/bash
-# iptables -N RH-Firewall-1-INPUT
-# iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 24007:24047 -j ACCEPT
-# iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 111 -j ACCEPT
-# iptables -A RH-Firewall-1-INPUT -m state --state NEW -m udp -p udp --dport 111 -j ACCEPT 
-# iptables -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 38465:38467 -j ACCEPT
-# iptables -I INPUT -j ACCEPT
-# service iptables save
-```
-
 You will also need to allow privileged containers by following doing the following:
 
 ```
