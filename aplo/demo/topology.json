@@ -6,7 +6,7 @@
                     "node": {
                         "hostnames": {
                             "manage": [
-                                "<TYPE GLUSTER POD NAME>"
+                                "<TYPE NODE GLUSTERID>"
                             ],
                             "storage": [
                                 "192.168.10.30"
@@ -25,7 +25,7 @@
                     "node": {
                         "hostnames": {
                             "manage": [
-                                "<TYPE GLUSTER POD NAME>"
+                                "<TYPE NODE GLUSTERID>"
                             ],
                             "storage": [
                                 "192.168.10.31"
@@ -44,7 +44,7 @@
                     "node": {
                         "hostnames": {
                             "manage": [
-                                "<TYPE GLUSTER POD NAME>"
+                                "<TYPE NODE GLUSTERID>"
                             ],
                             "storage": [
                                 "192.168.10.32"
